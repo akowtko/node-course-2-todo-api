@@ -7,7 +7,7 @@ const {Todo} = require('./../models/todo');
 
 const todos = [
     {_id: new ObjectID(), text: 'First test todo'},
-    {_id: new ObjectID(), text: 'Second test todo'}];
+    {_id: new ObjectID(), text: 'Second test todo', completed: true, completedAt: 333}];
 
 beforeEach((done) => {
     Todo.remove({}).then(() => {
@@ -97,12 +97,12 @@ describe('DELETE /todos/:id', () => {
 
             })
             .end((err, res) => {
-               if (err) return done(err);
+                if (err) return done(err);
 
-               Todo.findById(hexId).then((todo) => {
-                   expect(todo).toNotExist();
-                   done();
-               }).catch((e) => done(e));
+                Todo.findById(hexId).then((todo) => {
+                    expect(todo).toNotExist();
+                    done();
+                }).catch((e) => done(e));
             });
     });
 
@@ -120,5 +120,38 @@ describe('DELETE /todos/:id', () => {
             .delete('/todos/123')
             .expect(404)
             .end(done);
+    });
+});
+
+describe('PATCH /todos/:id', () => {
+    it('should update todo', (done) => {
+        const hexId = todos[0]._id.toHexString();
+        const body = {text: 'updated string', completed: true};
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send(body)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toEqual('updated string');
+                expect(res.body.todo.completed).toEqual(true);
+                expect(res.body.todo.completedAt).toBeA('number');
+            })
+            .end(done)
+    });
+
+    it('should clear completedAt when Todo is not completed', (done) => {
+        const hexId = todos[1]._id.toHexString();
+        const body = {text: 'second todo is now updated', completed: false};
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send(body)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toEqual('second todo is now updated');
+                expect(res.body.todo.completed).toEqual(false);
+                expect(res.body.todo.completedAt).toNotExist();
+            })
+            .end(done)
     });
 });
